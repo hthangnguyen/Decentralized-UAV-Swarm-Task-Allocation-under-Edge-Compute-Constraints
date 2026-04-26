@@ -34,16 +34,14 @@ Representative benchmark configuration used for the summary below:
 python simulate.py --episodes 30 --ticks 500 --n_uavs 8
 ```
 
-BENCHMARK SUMMARY (SAGIN + EGS Extensions)
-==========================================================================================
-+----------------------------+------------+------------+-----------+--------+--------+----------+
-|Algorithm                   |Comp%       |Time(t)     |Msgs/ep    |Edge%   |Corrs   |Dist/U    |
-+----------------------------+------------+------------+-----------+--------+--------+----------+
-|LocalConsensus (proposed)   |96.8%       |16.8        |532        |6.9%    |0.0     |156.8     |
-|GreedyBaseline (no coordina |96.7%       |13.2        |57         |12.2%   |0.0     |119.8     |
-|CentralizedOracle (upper bo |97.1%       |13.2        |4054       |6.9%    |0.0     |123.4     |
-|EGS-Assisted Consensus (pro |95.7%       |17.2        |597        |4.1%    |1.8     |162.3     |
-+----------------------------+------------+------------+-----------+--------+--------+----------+
+## BENCHMARK SUMMARY (SAGIN + EGS Extensions)
+
+| Algorithm                         | Comp% | Time (t) | Msgs/ep | Edge% | Corrs | Dist/U |
+|----------------------------------|-------|----------|---------|-------|-------|--------|
+| LocalConsensus (proposed)         | 96.8% | 16.8     | 532     | 6.9%  | 0.0   | 156.8  |
+| GreedyBaseline (no coordination) | 96.7% | 13.2     | 57      | 12.2% | 0.0   | 119.8  |
+| CentralizedOracle (upper bound)  | 97.1% | 13.2     | 4054    | 6.9%  | 0.0   | 123.4  |
+| EGS-Assisted Consensus (proposed)| 95.7% | 17.2     | 597     | 4.1%  | 1.8   | 162.3  |
 
 The benchmark now applies compute-load reservation and edge-offload latency directly inside the simulation loop, so mobility throttling, edge delay, and EGS corrections affect runtime behavior instead of only post-hoc reporting.
 

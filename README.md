@@ -2,7 +2,7 @@
 
 A simulation framework benchmarking **local-consensus task allocation** against greedy and centralized-oracle baselines for autonomous UAV swarms operating at the network edge — motivated by recent work on agentic AI in UAV swarms and edge-cloud computation offloading.
 
-![Swarm snapshot](results/snapshot.png)
+![Swarm snapshot](results/swarm.gif)
 
 ## Motivation
 

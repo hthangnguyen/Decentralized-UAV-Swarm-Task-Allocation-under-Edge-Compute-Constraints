@@ -21,6 +21,7 @@ import numpy as np
 
 from env import SwarmEnv
 from consensus import LocalConsensus, GreedyBaseline, CentralizedOracle
+from edge import EGSAssistedConsensus
 
 
 # ── Metrics ───────────────────────────────────────────────────────────────────
@@ -36,6 +37,10 @@ class EpisodeMetrics:
     total_messages: int             # inter-UAV + UAV-base comms
     mean_distance_per_uav: float
     connectivity_ratio: float       # fraction of ticks UAVs had ≥1 neighbor
+    # SAGIN / EGS extensions
+    edge_offloaded: int = 0         # tasks sent to EGS for processing
+    local_processed: int = 0        # tasks processed on-board
+    egs_corrections: int = 0        # assignments corrected by EGS
 
 
 def run_episode(
@@ -60,18 +65,38 @@ def run_episode(
     )
     obs = env.reset(seed=seed)
 
+    # Reset EGS state if algo carries one
+    if hasattr(algo, 'egs'):
+        from edge import CorrectionStats
+        algo.egs.stats = CorrectionStats()
+
     total_msgs = 0
-    connected_ticks = 0   # ticks where avg UAV has ≥1 neighbor
+    connected_ticks = 0
 
     for _ in range(n_ticks):
-        # Run assignment round
+        # 1. Run assignment round
         msgs = algo.assign(obs)
         total_msgs += msgs
 
-        # Step environment
+        # 2. Track which tasks were incomplete before stepping
+        pre_completed = {t.id for t in env.tasks if t.completed}
+
+        # 3. Step environment
         obs = env.step()
 
-        # Track connectivity
+        # 4. Notify algorithm of any newly completed tasks to release compute
+        if hasattr(algo, "on_task_complete"):
+            for t in env.tasks:
+                if t.completed and t.id not in pre_completed:
+                    # Find which UAV completed it
+                    # (In our env, UAV.target_task_id is cleared on arrival, 
+                    # but we can find the UAV by t.assigned_to)
+                    if t.assigned_to is not None:
+                        uav = next((u for u in env.uavs if u.id == t.assigned_to), None)
+                        if uav:
+                            algo.on_task_complete(uav, t)
+
+        # 5. Track connectivity
         avg_neighbors = np.mean([len(u.neighbors) for u in env.uavs])
         if avg_neighbors >= 1.0:
             connected_ticks += 1
@@ -79,10 +104,14 @@ def run_episode(
     all_tasks = env.tasks
     done_tasks = [t for t in all_tasks if t.completed]
     completion_times = [
-        t.complete_tick - t.spawn_tick
+        t.complete_tick - t.spawn_tick + t.offload_latency
         for t in done_tasks
         if t.complete_tick is not None
     ]
+
+    edge_off = sum(u.edge_offloaded for u in env.uavs)
+    local_proc = sum(u.local_processed for u in env.uavs)
+    corrections = algo.correction_stats.total_extra_msgs if hasattr(algo, 'correction_stats') else 0
 
     return EpisodeMetrics(
         algorithm=algo.name,
@@ -94,6 +123,9 @@ def run_episode(
         total_messages=total_msgs,
         mean_distance_per_uav=float(np.mean([u.distance_flown for u in env.uavs])),
         connectivity_ratio=connected_ticks / n_ticks,
+        edge_offloaded=edge_off,
+        local_processed=local_proc,
+        egs_corrections=corrections,
     )
 
 
@@ -143,18 +175,18 @@ def summarise(metrics: list[EpisodeMetrics]):
     for m in metrics:
         groups[m.algorithm].append(m)
 
-    algo_order = [LocalConsensus.name, GreedyBaseline.name, CentralizedOracle.name]
+    algo_order = [LocalConsensus.name, GreedyBaseline.name, CentralizedOracle.name, EGSAssistedConsensus.name]
     ordered = [k for k in algo_order if k in groups] + [k for k in groups if k not in algo_order]
 
-    col_w = [34, 12, 14, 12, 10, 12]
-    header = ["Algorithm", "Completion%", "Avg time(t)", "Msgs/ep", "Conn%", "Dist/UAV"]
+    col_w = [28, 12, 12, 11, 8, 8, 10]
+    header = ["Algorithm", "Comp%", "Time(t)", "Msgs/ep", "Edge%", "Corrs", "Dist/U"]
 
     sep = "+" + "+".join("-" * w for w in col_w) + "+"
     fmt = "|" + "|".join(f"{{:<{w}}}" for w in col_w) + "|"
 
-    print("\n" + "=" * 80)
-    print("BENCHMARK SUMMARY")
-    print("=" * 80)
+    print("\n" + "=" * 90)
+    print("BENCHMARK SUMMARY (SAGIN + EGS Extensions)")
+    print("=" * 90)
     print(sep)
     print(fmt.format(*header))
     print(sep)
@@ -165,21 +197,26 @@ def summarise(metrics: list[EpisodeMetrics]):
         cr  = statistics.mean(m.completion_rate for m in ms) * 100
         ct  = statistics.mean(m.mean_completion_time for m in ms if not np.isnan(m.mean_completion_time))
         msg = statistics.mean(m.total_messages for m in ms)
-        con = statistics.mean(m.connectivity_ratio for m in ms) * 100
+        # Extensions
+        off = statistics.mean(m.edge_offloaded / max(m.tasks_completed, 1) for m in ms) * 100
+        cor = statistics.mean(m.egs_corrections for m in ms)
         dist= statistics.mean(m.mean_distance_per_uav for m in ms)
+        
         print(fmt.format(
             name[:col_w[0]-1],
             f"{cr:.1f}%",
             f"{ct:.1f}",
             f"{msg:.0f}",
-            f"{con:.1f}%",
+            f"{off:.1f}%",
+            f"{cor:.1f}",
             f"{dist:.1f}",
         ))
         summary_data[name] = {
             "completion_pct": round(cr, 2),
             "avg_completion_time": round(ct, 2),
             "avg_msgs_per_episode": round(msg, 1),
-            "connectivity_pct": round(con, 2),
+            "edge_offload_pct": round(off, 2),
+            "avg_egs_corrections": round(cor, 1),
             "avg_dist_per_uav": round(dist, 2),
         }
     print(sep)
@@ -189,12 +226,20 @@ def summarise(metrics: list[EpisodeMetrics]):
     oracle_msg = summary_data.get(CentralizedOracle.name, {}).get("avg_msgs_per_episode", 1)
     local_cr   = summary_data.get(LocalConsensus.name,    {}).get("completion_pct", 0)
     local_msg  = summary_data.get(LocalConsensus.name,    {}).get("avg_msgs_per_episode", 1)
+    assist_cr  = summary_data.get(EGSAssistedConsensus.name, {}).get("completion_pct", 0)
+    assist_msg = summary_data.get(EGSAssistedConsensus.name, {}).get("avg_msgs_per_episode", 1)
 
     if oracle_cr > 0 and oracle_msg > 0:
         perf_ratio = local_cr / oracle_cr * 100
         msg_saving = (1 - local_msg / oracle_msg) * 100
         print(f"\n  LocalConsensus achieves {perf_ratio:.1f}% of Oracle completion rate")
         print(f"  while using {msg_saving:.1f}% fewer messages than the Oracle.")
+
+    if assist_cr > 0 and oracle_cr > 0:
+        a_perf_ratio = assist_cr / oracle_cr * 100
+        a_msg_saving = (1 - assist_msg / oracle_msg) * 100
+        print(f"  EGS-Assisted Consensus achieves {a_perf_ratio:.1f}% of Oracle completion rate")
+        print(f"  while using {a_msg_saving:.1f}% fewer messages than the Oracle.")
 
     return summary_data
 
@@ -210,17 +255,18 @@ def main():
     parser.add_argument("--task_rate", type=float, default=0.10)
     parser.add_argument("--seed",      type=int,   default=42)
     parser.add_argument("--algo",      type=str,   default="all",
-                        choices=["all", "local", "greedy", "oracle"])
+                        choices=["all", "local", "greedy", "oracle", "assisted"])
     args = parser.parse_args()
 
     algo_map = {
-        "local":  LocalConsensus,
-        "greedy": GreedyBaseline,
-        "oracle": CentralizedOracle,
+        "local":    LocalConsensus,
+        "greedy":   GreedyBaseline,
+        "oracle":   CentralizedOracle,
+        "assisted": EGSAssistedConsensus,
     }
 
     if args.algo == "all":
-        algos = [LocalConsensus(), GreedyBaseline(), CentralizedOracle()]
+        algos = [LocalConsensus(), GreedyBaseline(), CentralizedOracle(), EGSAssistedConsensus(area_size=args.n_uavs*20)]
     else:
         algos = [algo_map[args.algo]()]
 

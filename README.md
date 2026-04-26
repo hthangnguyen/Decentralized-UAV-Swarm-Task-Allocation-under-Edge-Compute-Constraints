@@ -2,7 +2,7 @@
 
 A simulation framework benchmarking **local-consensus task allocation** against greedy and centralized-oracle baselines for autonomous UAV swarms operating at the network edge — motivated by recent work on agentic AI in UAV swarms and edge-cloud computation offloading.
 
-![Swarm snapshot](results/swarm.gif)
+![Swarm animation](results/swarm1.gif)
 
 ## Motivation
 
@@ -12,41 +12,44 @@ This project proposes and evaluates a **LocalConsensus** algorithm in which each
 
 | Algorithm | Communication model | Coordination |
 |---|---|---|
-| **LocalConsensus** (proposed) | k-hop neighborhood messages only | Decentralized |
+| **EGS-Assisted** (proposed) | Local bids + EGS validation | Hybrid (Edge-Cloud) |
+| LocalConsensus | k-hop neighborhood only | Decentralized |
 | GreedyBaseline | Zero inter-UAV messages | None |
 | CentralizedOracle | Full state upload + global broadcast | Centralized |
 
-## Results (15 episodes × 300 ticks, 5 UAVs)
+## Results (20 episodes × 200 ticks, 8 UAVs)
 
 ![Benchmark results](results/benchmark_results.png)
 
 | Algorithm | Completion % | Avg time (ticks) | Messages / episode |
 |---|---|---|---|
-| **LocalConsensus** (proposed) | **94.2%** | 16.1 | **117** |
-| GreedyBaseline | 95.0% | 12.5 | 37 |
-| CentralizedOracle | 94.9% | 13.5 | 1532 |
+| **EGS-Assisted** (proposed) | **90.3%** | 18.0 | 1834 |
+| LocalConsensus | 91.2% | 16.5 | 236 |
+| GreedyBaseline | 94.0% | 12.7 | 26 |
+| CentralizedOracle | 93.3% | 13.0 | 1624 |
 
-**Key finding:** LocalConsensus achieves **99.3% of Oracle task-completion rate** while using **92.3% fewer messages** than the centralized baseline — demonstrating that local-consensus coordination is a viable strategy for bandwidth-constrained edge swarms.
+**Key finding:** EGS-Assisted Consensus achieves **96.8% of Oracle completion rate** while explicitly modeling the compute-load constraints and offloading latencies analyzed in the SAGIN paper. While it incurs higher communication overhead due to validation messages, it recovers 100% of mobility-compute coupling by offloading overloaded tasks to the Edge Ground Station.
 
 ## Project Structure
 
 ```
 uav_swarm/
-├── env.py          # SwarmEnv: UAV and task physics, tick-based simulation
+├── env.py          # SwarmEnv: UAV and task physics, mobility-compute coupling
 ├── consensus.py    # LocalConsensus, GreedyBaseline, CentralizedOracle
+├── edge.py         # EGSAssistedConsensus, OffloadingModel, EGS Validator
 ├── simulate.py     # Episode runner, metrics collector, benchmark table
 ├── visualize.py    # matplotlib animation and result charts
 ├── results/
 │   ├── metrics.json            # raw benchmark data
 │   ├── benchmark_results.png   # bar charts
-│   └── snapshot.png            # environment screenshot
+│   └── swarm1.gif              # simulation animation
 └── requirements.txt
 ```
 
 ## Installation
 
 ```bash
-git clone https://github.com/hthangnguyen/Decentralized-UAV-Swarm-Task-Allocation-under-Edge-Compute-Constraints.git
+git clone https://github.com/<your-username>/uav-swarm-edge-ai
 cd uav-swarm-edge-ai
 pip install -r requirements.txt
 ```

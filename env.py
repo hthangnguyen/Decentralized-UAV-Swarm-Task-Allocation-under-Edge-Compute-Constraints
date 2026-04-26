@@ -24,6 +24,10 @@ class Task:
     completed: bool = False
     spawn_tick: int = 0
     complete_tick: Optional[int] = None
+    # SAGIN / EGS fields
+    compute_demand: float = 0.2     # fraction of UAV compute budget
+    offload_latency: float = 0.0    # extra ticks if processed at edge
+    processed_at: Optional[str] = None # 'local' or 'edge'
 
     @property
     def pos(self) -> np.ndarray:
@@ -49,6 +53,18 @@ class UAV:
     tasks_completed: int = 0
     distance_flown: float = 0.0
     consensus_msgs_sent: int = 0
+    edge_offloaded: int = 0         # tasks sent to EGS
+    local_processed: int = 0        # tasks processed on-board
+
+    @property
+    def effective_speed(self) -> float:
+        """
+        Mobility-compute coupling (SAGIN paper): 
+        UAV speed throttles as on-board compute load increases.
+        """
+        # Linear throttle: 100% speed at 0 load, 40% speed at 100% load
+        throttle = 1.0 - (0.6 * self.compute_load)
+        return self.speed * throttle
 
     @property
     def pos(self) -> np.ndarray:
@@ -145,10 +161,8 @@ class SwarmEnv:
         # check arrivals & free completed tasks
         self._check_arrivals()
 
-        # drift compute load a bit
+        # drift battery
         for u in self.uavs:
-            u.compute_load = float(np.clip(
-                u.compute_load + self.rng.normal(0, 0.02), 0.05, 0.95))
             u.battery = float(np.clip(u.battery - 0.0005, 0.0, 1.0))
 
         self._update_neighbors()
@@ -163,6 +177,7 @@ class SwarmEnv:
             y=float(self.rng.uniform(5, self.area - 5)),
             priority=float(self.rng.beta(2, 2)),
             spawn_tick=self.tick,
+            compute_demand=float(self.rng.uniform(0.1, 0.4)),
         )
         self.tasks.append(t)
         self._next_task_id += 1
@@ -182,7 +197,7 @@ class SwarmEnv:
                 delta = t.pos - u.pos
                 dist = float(np.linalg.norm(delta))
                 if dist > 1e-6:
-                    step = min(u.speed, dist)
+                    step = min(u.effective_speed, dist)
                     move = delta / dist * step
                     u.x += float(move[0])
                     u.y += float(move[1])

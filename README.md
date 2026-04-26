@@ -8,7 +8,7 @@ A simulation framework benchmarking **local-consensus task allocation** against 
 
 Deploying intelligent task allocation to edge-constrained UAV swarms raises a key challenge: centralized approaches (e.g., Hungarian-algorithm base-station solvers) require every agent to upload its state and receive assignments, incurring O(N) global broadcasts per round. In bandwidth-limited or intermittently connected environments, this is infeasible.
 
-This project proposes and evaluates a **LocalConsensus** algorithm in which each UAV bids on open tasks using only information exchanged with in-range neighbors. No global broadcast is needed. We compare three allocation strategies:
+This project proposes and evaluates a **LocalConsensus** algorithm in which each UAV bids on open tasks using only information exchanged with in-range neighbors. No global broadcast is needed. We compare four allocation strategies:
 
 | Algorithm | Communication model | Coordination |
 |---|---|---|
@@ -28,7 +28,30 @@ python simulate.py
 python visualize.py --mode results
 ```
 
+Representative benchmark configuration used for the summary below:
+
+```bash
+python simulate.py --n_uavs 8 --ticks 500 --episodes 30 --comm_range 35 --task_rate 0.10
+```
+
+| Algorithm | Completion % | Avg time (ticks) | Messages / episode |
+|---|---:|---:|---:|
+| LocalConsensus | 96.78 | 16.78 | 532.2 |
+| GreedyBaseline | 96.74 | 13.24 | 56.9 |
+| CentralizedOracle | 97.06 | 13.24 | 4054.2 |
+| EGS-Assisted | 95.73 | 17.16 | 596.8 |
+
 The benchmark now applies compute-load reservation and edge-offload latency directly inside the simulation loop, so mobility throttling, edge delay, and EGS corrections affect runtime behavior instead of only post-hoc reporting.
+
+For communication accounting, the `CentralizedOracle` baseline models a continuously monitoring base station with full-state uploads each tick, while `LocalConsensus` and the EGS validation layer are event-driven and only communicate when local bidding or correction-worthy assignments occur. This asymmetry is intentional: it reflects the architectural contrast between always-on centralized coordination and lightweight onboard agents with occasional edge assistance.
+
+Over 30 episodes, `LocalConsensus` is statistically comparable to `CentralizedOracle` on completion rate (Welch's t-test `p = 0.66`) while using about 86.9% fewer messages per episode. That is the main empirical result of the project.
+
+In dense settings, the simple greedy baseline can also perform surprisingly well because many tasks are near some free UAV. Here, `GreedyBaseline` is also statistically comparable to `LocalConsensus` on completion rate (`p = 0.95`) while being faster and much cheaper in communication. The stronger claim here is therefore not that `LocalConsensus` always beats greedy, but that it can match centralized quality without relying on global broadcasts and remains a fully decentralized control path.
+
+The `LocalConsensus` message count grows with fleet size and mean neighborhood degree because each open-task bid is broadcast to in-range peers. In the 8-UAV benchmark above, the average `532.2` messages per episode come entirely from local bid exchanges rather than hidden global traffic.
+
+`EGS-Assisted` is best understood as a hybrid reliability-monitoring variant rather than the throughput winner in this benign dense regime. Its edge layer stays lightweight and event-driven, averaging about 50.4 validation rounds, 55.1 EGS uploads, 5.8 EGS downlinks, 1.8 overload corrections, and 2.2 forced offloads per episode. In the current environment those correction events are too rare for the extra layer to outperform plain `LocalConsensus`, but the same instrumentation is intended to matter more under higher task rates, lower UAV density, or harsher connectivity.
 
 ## Project Structure
 

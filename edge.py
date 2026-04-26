@@ -156,11 +156,13 @@ class EdgeGroundStation:
         x: float = 50.0,
         y: float = 50.0,
         overload_threshold: float = 0.75,
+        reroute_headroom: float = 0.20,
         offloading_model: Optional[OffloadingModel] = None,
     ):
         self.x = x
         self.y = y
         self.overload_threshold = overload_threshold
+        self.reroute_headroom = reroute_headroom
         self.offloading_model = offloading_model or OffloadingModel(x, y)
         self.stats = CorrectionStats()
 
@@ -236,7 +238,8 @@ class EdgeGroundStation:
                     v for v in uavs
                     if v.id != u.id
                     and v.target_task_id is None
-                    and (v.compute_load + t.compute_demand) <= self.overload_threshold
+                    and (v.compute_load + t.compute_demand)
+                    <= (self.overload_threshold - self.reroute_headroom)
                 ]
                 if candidates:
                     candidates.sort(key=lambda v: v.dist_to(t))

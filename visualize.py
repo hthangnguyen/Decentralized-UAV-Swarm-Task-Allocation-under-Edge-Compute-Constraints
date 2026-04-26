@@ -227,7 +227,11 @@ def plot_results(metrics_path: str = "results/metrics.json"):
     out = Path("results/benchmark_results.png")
     plt.savefig(out, dpi=150, bbox_inches="tight")
     print(f"Saved chart to {out}")
-    plt.show()
+    backend = matplotlib.get_backend().lower()
+    if "agg" not in backend:
+        plt.show()
+    else:
+        plt.close(fig)
 
 
 # ── Snapshot (for README) ─────────────────────────────────────────────────────

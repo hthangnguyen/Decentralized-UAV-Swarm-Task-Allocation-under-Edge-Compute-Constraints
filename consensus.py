@@ -1,7 +1,7 @@
 """
 consensus.py — Task-allocation algorithms.
 
-Three algorithms are implemented so you can benchmark them head-to-head:
+Three allocators are implemented here so you can benchmark them head-to-head:
 
 1. LocalConsensus   (proposed) — UAVs bid only with in-range neighbors.
                                  No global broadcast.  O(k) messages per round,
@@ -42,11 +42,10 @@ class LocalConsensus:
     """
     Decentralised auction run purely over local neighborhoods.
 
-    Each task is assigned to the lowest-cost UAV *within its local
-    neighborhood graph*.  A UAV can only bid on a task if at least one
-    of its in-range neighbors also sees that task — this models the
-    constraint that edge devices share partial state via short-range radio
-    rather than uploading to a central server.
+    Each task is assigned to the lowest-cost free UAV within the current
+    connected local neighborhood. A UAV with neighbors only bids when at
+    least one free peer is in range, so the allocator remains grounded in
+    short-range sharing instead of central coordination.
 
     Messages counted: one bid message per (UAV, task) pair within range.
     """
@@ -59,6 +58,7 @@ class LocalConsensus:
         uav_map = {u.id: u for u in uavs}
 
         msgs = 0
+        assignments_created = 0
 
         for task in open_tasks:
             # Each UAV broadcasts a bid to in-range peers
@@ -88,12 +88,19 @@ class LocalConsensus:
                     task.assigned_to = winner.id
                     winner.target_task_id = task.id
                     msgs += 1
+                    assignments_created += 1
                 continue
 
             candidates.sort(key=lambda u: _cost(u, task))
             winner = candidates[0]
             task.assigned_to = winner.id
             winner.target_task_id = task.id
+            assignments_created += 1
+
+        self.last_assign_stats = {
+            "assignments_created": assignments_created,
+            "msg_local_bids": msgs,
+        }
 
         return msgs
 
@@ -118,6 +125,7 @@ class GreedyBaseline:
         uavs: list[UAV] = obs["uavs"]
 
         msgs = len(open_tasks)   # task-broadcast overhead
+        assignments_created = 0
 
         # Each free UAV picks nearest open task
         claimed: dict[int, list[UAV]] = {}   # task_id -> list of claimants
@@ -137,6 +145,12 @@ class GreedyBaseline:
             winner = claimants[0]
             t.assigned_to = winner.id
             winner.target_task_id = t.id
+            assignments_created += 1
+
+        self.last_assign_stats = {
+            "assignments_created": assignments_created,
+            "msg_task_broadcasts": msgs,
+        }
 
         return msgs
 
@@ -163,8 +177,14 @@ class CentralizedOracle:
 
         # Upload cost: every UAV reports state
         msgs = len(uavs)
+        assigned = 0
 
         if not free_uavs or not open_tasks:
+            self.last_assign_stats = {
+                "assignments_created": 0,
+                "msg_oracle_uploads": len(uavs),
+                "msg_oracle_downlinks": 0,
+            }
             return msgs
 
         n_u = len(free_uavs)
@@ -179,7 +199,6 @@ class CentralizedOracle:
 
         row_ind, col_ind = linear_sum_assignment(C)
 
-        assigned = 0
         for i, j in zip(row_ind, col_ind):
             if i < n_u and j < n_t:
                 u = free_uavs[i]
@@ -190,4 +209,9 @@ class CentralizedOracle:
 
         # Broadcast assignments back
         msgs += assigned
+        self.last_assign_stats = {
+            "assignments_created": assigned,
+            "msg_oracle_uploads": len(uavs),
+            "msg_oracle_downlinks": assigned,
+        }
         return msgs

@@ -121,7 +121,14 @@ class OffloadingModel:
 class CorrectionStats:
     overload_corrections: int = 0
     coverage_corrections: int = 0
+    forced_offloads: int = 0
+    validation_rounds: int = 0
+    skipped_validations: int = 0
     total_extra_msgs: int = 0
+
+    @property
+    def total_corrections(self) -> int:
+        return self.overload_corrections + self.coverage_corrections
 
 
 class EdgeGroundStation:
@@ -157,29 +164,68 @@ class EdgeGroundStation:
         self.offloading_model = offloading_model or OffloadingModel(x, y)
         self.stats = CorrectionStats()
 
-    def validate_and_correct(self, obs: dict) -> int:
+    def validate_and_correct(
+        self,
+        obs: dict,
+        new_assignment_task_ids: set[int],
+        orphan_task_ids: set[int],
+    ) -> int:
         """
         Inspect current assignments. Detect and fix overload + coverage gaps.
         Returns number of extra messages used in this validation round.
         """
         uavs: list[UAV] = obs["uavs"]
         tasks: list[Task] = obs["tasks"]
-        uav_map = {u.id: u for u in uavs}
         task_map = {t.id: t for t in tasks if not t.completed}
 
-        # Every UAV uploads state to EGS
-        extra_msgs = len(uavs)
+        self.last_validation_stats = {
+            "egs_validation_rounds": 0,
+            "egs_validation_skips": 0,
+            "msg_egs_uploads": 0,
+            "msg_egs_downlinks": 0,
+            "egs_overload_corrections": 0,
+            "egs_coverage_corrections": 0,
+            "egs_forced_offloads": 0,
+        }
+
+        # Event-driven validation: the EGS only wakes up when the local round
+        # produced new assignments or left newly considered tasks uncovered.
+        if not new_assignment_task_ids and not orphan_task_ids:
+            self.stats.skipped_validations += 1
+            self.last_validation_stats["egs_validation_skips"] = 1
+            return 0
+
+        self.stats.validation_rounds += 1
+        self.last_validation_stats["egs_validation_rounds"] = 1
+
+        assigned_uav_ids = {
+            t.assigned_to
+            for tid in new_assignment_task_ids
+            if (t := task_map.get(tid)) is not None and t.assigned_to is not None
+        }
+        extra_msgs = len(assigned_uav_ids)
+        if orphan_task_ids:
+            extra_msgs += len([u for u in uavs if u.target_task_id is None])
+        self.last_validation_stats["msg_egs_uploads"] = extra_msgs
 
         # ── (a) Fix compute overloads ──────────────────────────────────────
-        for u in uavs:
-            if u.target_task_id is None:
+        for tid in new_assignment_task_ids:
+            t = task_map.get(tid)
+            if t is None or t.assigned_to is None:
                 continue
-            t = task_map.get(u.target_task_id)
-            if t is None:
+            u = next((uav for uav in uavs if uav.id == t.assigned_to), None)
+            if u is None:
                 continue
-            
-            # If current load exceeds threshold (due to onboard assignment)
-            if u.compute_load > self.overload_threshold:
+
+            if t.processed_at == "local":
+                projected_load = u.compute_load
+            elif t.processed_at == "edge":
+                projected_load = u.compute_load
+            else:
+                projected_load = u.compute_load + t.compute_demand
+
+            # If taking this task locally would exceed threshold, correct it.
+            if projected_load > self.overload_threshold:
                 # Revert local assignment on original UAV
                 if t.processed_at == "local":
                     u.compute_load = max(0.05, u.compute_load - t.compute_demand)
@@ -198,20 +244,27 @@ class EdgeGroundStation:
                     # Hand off
                     u.target_task_id = None
                     t.assigned_to = new_uav.id
+                    t.processed_at = None
+                    t.offload_latency = 0.0
                     new_uav.target_task_id = t.id
                     # New UAV processes the task (local or edge)
                     self.offloading_model.decide(new_uav, t)
                     self.stats.overload_corrections += 1
+                    self.last_validation_stats["egs_overload_corrections"] += 1
                     extra_msgs += 2
+                    self.last_validation_stats["msg_egs_downlinks"] += 2
                 else:
                     # No swap possible; force offload processing to EGS for this UAV
                     self.offloading_model.decide(u, t)
+                    self.stats.forced_offloads += 1
+                    self.last_validation_stats["egs_forced_offloads"] += 1
                     extra_msgs += 1
+                    self.last_validation_stats["msg_egs_downlinks"] += 1
 
         # ── (b) Fix coverage gaps (orphan tasks) ──────────────────────────
         open_tasks = [
             t for t in tasks
-            if not t.completed and t.assigned_to is None
+            if t.id in orphan_task_ids and not t.completed and t.assigned_to is None
         ]
         for t in open_tasks:
             free_uavs = [u for u in uavs if u.target_task_id is None]
@@ -223,7 +276,9 @@ class EdgeGroundStation:
             best.target_task_id = t.id
             self.offloading_model.decide(best, t)
             self.stats.coverage_corrections += 1
+            self.last_validation_stats["egs_coverage_corrections"] += 1
             extra_msgs += 1   # EGS -> dispatched UAV
+            self.last_validation_stats["msg_egs_downlinks"] += 1
 
         self.stats.total_extra_msgs += extra_msgs
         return extra_msgs
@@ -261,10 +316,31 @@ class EGSAssistedConsensus:
         )
 
     def assign(self, obs: dict) -> int:
+        pre_open_task_ids = {t.id for t in obs["open_tasks"]}
+
         # Stage 1: onboard lightweight consensus
-        msgs = self.onboard.assign(obs)
+        onboard_msgs = self.onboard.assign(obs)
+
+        new_assignment_task_ids = {
+            tid for tid in pre_open_task_ids
+            if (task := next((t for t in obs["tasks"] if t.id == tid), None)) is not None
+            and task.assigned_to is not None
+        }
+        orphan_task_ids = {
+            tid for tid in pre_open_task_ids
+            if (task := next((t for t in obs["tasks"] if t.id == tid), None)) is not None
+            and task.assigned_to is None
+        }
+
         # Stage 2: EGS validation and correction
-        msgs += self.egs.validate_and_correct(obs)
+        egs_msgs = self.egs.validate_and_correct(obs, new_assignment_task_ids, orphan_task_ids)
+
+        self.last_assign_stats = {
+            "assignments_created": self.onboard.last_assign_stats.get("assignments_created", 0),
+            "msg_local_bids": self.onboard.last_assign_stats.get("msg_local_bids", 0),
+            **self.egs.last_validation_stats,
+        }
+        msgs = onboard_msgs + egs_msgs
         return msgs
 
     def on_task_complete(self, uav: UAV, task: Task):

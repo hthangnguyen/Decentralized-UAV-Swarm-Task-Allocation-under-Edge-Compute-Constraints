@@ -17,18 +17,18 @@ This project proposes and evaluates a **LocalConsensus** algorithm in which each
 | GreedyBaseline | Zero inter-UAV messages | None |
 | CentralizedOracle | Full state upload + global broadcast | Centralized |
 
-## Results (20 episodes × 200 ticks, 8 UAVs)
+## Results
 
 ![Benchmark results](results/benchmark_results.png)
 
-| Algorithm | Completion % | Avg time (ticks) | Messages / episode |
-|---|---|---|---|
-| **EGS-Assisted** (proposed) | **90.3%** | 18.0 | 1834 |
-| LocalConsensus | 91.2% | 16.5 | 236 |
-| GreedyBaseline | 94.0% | 12.7 | 26 |
-| CentralizedOracle | 93.3% | 13.0 | 1624 |
+Benchmark outputs depend heavily on the seed, swarm size, task rate, and communication range. Rather than pinning one stale table in the README, the project saves reproducible per-episode metrics to `results/metrics.json` and can regenerate plots with:
 
-**Key finding:** EGS-Assisted Consensus achieves **96.8% of Oracle completion rate** while explicitly modeling the compute-load constraints and offloading latencies analyzed in the SAGIN paper. While it incurs higher communication overhead due to validation messages, it recovers 100% of mobility-compute coupling by offloading overloaded tasks to the Edge Ground Station.
+```bash
+python simulate.py
+python visualize.py --mode results
+```
+
+The benchmark now applies compute-load reservation and edge-offload latency directly inside the simulation loop, so mobility throttling, edge delay, and EGS corrections affect runtime behavior instead of only post-hoc reporting.
 
 ## Project Structure
 
@@ -56,14 +56,14 @@ pip install -r requirements.txt
 
 ## Usage
 
-**Run the full benchmark (all 3 algorithms):**
+**Run the full benchmark (all 4 algorithms):**
 ```bash
 python simulate.py
 ```
 
 **Custom configuration:**
 ```bash
-python simulate.py --n_uavs 8 --ticks 500 --episodes 20 --comm_range 40
+python simulate.py --n_uavs 8 --area 120 --ticks 500 --episodes 20 --comm_range 40
 ```
 
 **Single algorithm:**

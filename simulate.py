@@ -14,17 +14,36 @@ import argparse
 import json
 import time
 from pathlib import Path
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from typing import Type
 
 import numpy as np
 
 from env import SwarmEnv
 from consensus import LocalConsensus, GreedyBaseline, CentralizedOracle
-from edge import EGSAssistedConsensus
+from edge import EGSAssistedConsensus, OffloadingModel
 
 
 # ── Metrics ───────────────────────────────────────────────────────────────────
+
+DIAGNOSTIC_KEYS = [
+    "assignments_created",
+    "msg_local_bids",
+    "msg_task_broadcasts",
+    "msg_oracle_uploads",
+    "msg_oracle_downlinks",
+    "msg_egs_uploads",
+    "msg_egs_downlinks",
+    "egs_validation_rounds",
+    "egs_validation_skips",
+    "egs_overload_corrections",
+    "egs_coverage_corrections",
+    "egs_forced_offloads",
+]
+
+
+def blank_diagnostics() -> dict[str, float]:
+    return {key: 0.0 for key in DIAGNOSTIC_KEYS}
 
 @dataclass
 class EpisodeMetrics:
@@ -41,6 +60,7 @@ class EpisodeMetrics:
     edge_offloaded: int = 0         # tasks sent to EGS for processing
     local_processed: int = 0        # tasks processed on-board
     egs_corrections: int = 0        # assignments corrected by EGS
+    diagnostics: dict[str, float] = field(default_factory=dict)
 
 
 def run_episode(
@@ -70,13 +90,31 @@ def run_episode(
         from edge import CorrectionStats
         algo.egs.stats = CorrectionStats()
 
+    processing_model = (
+        algo.egs.offloading_model
+        if hasattr(algo, "egs")
+        else OffloadingModel(egs_x=area / 2, egs_y=area / 2)
+    )
+
     total_msgs = 0
     connected_ticks = 0
+    diagnostics = blank_diagnostics()
 
     for _ in range(n_ticks):
         # 1. Run assignment round
         msgs = algo.assign(obs)
         total_msgs += msgs
+        for key, value in getattr(algo, "last_assign_stats", {}).items():
+            diagnostics[key] = diagnostics.get(key, 0.0) + float(value)
+
+        # Apply the compute/offloading model to newly assigned tasks so
+        # mobility penalties and edge latency affect the simulation itself.
+        for t in env.tasks:
+            if t.completed or t.assigned_to is None or t.processed_at is not None:
+                continue
+            uav = next((u for u in env.uavs if u.id == t.assigned_to), None)
+            if uav is not None:
+                processing_model.decide(uav, t)
 
         # 2. Track which tasks were incomplete before stepping
         pre_completed = {t.id for t in env.tasks if t.completed}
@@ -95,6 +133,12 @@ def run_episode(
                         uav = next((u for u in env.uavs if u.id == t.assigned_to), None)
                         if uav:
                             algo.on_task_complete(uav, t)
+        else:
+            for t in env.tasks:
+                if t.completed and t.id not in pre_completed and t.assigned_to is not None:
+                    uav = next((u for u in env.uavs if u.id == t.assigned_to), None)
+                    if uav:
+                        processing_model.release_compute(uav, t)
 
         # 5. Track connectivity
         avg_neighbors = np.mean([len(u.neighbors) for u in env.uavs])
@@ -111,7 +155,7 @@ def run_episode(
 
     edge_off = sum(u.edge_offloaded for u in env.uavs)
     local_proc = sum(u.local_processed for u in env.uavs)
-    corrections = algo.correction_stats.total_extra_msgs if hasattr(algo, 'correction_stats') else 0
+    corrections = algo.correction_stats.total_corrections if hasattr(algo, 'correction_stats') else 0
 
     return EpisodeMetrics(
         algorithm=algo.name,
@@ -126,6 +170,7 @@ def run_episode(
         edge_offloaded=edge_off,
         local_processed=local_proc,
         egs_corrections=corrections,
+        diagnostics=diagnostics,
     )
 
 
@@ -135,6 +180,7 @@ def run_benchmark(
     algos,
     n_episodes: int = 10,
     n_uavs: int = 5,
+    area: float = 100.0,
     n_ticks: int = 300,
     comm_range: float = 35.0,
     task_rate: float = 0.10,
@@ -150,6 +196,7 @@ def run_benchmark(
             m = run_episode(
                 algo,
                 n_uavs=n_uavs,
+                area=area,
                 comm_range=comm_range,
                 task_rate=task_rate,
                 n_ticks=n_ticks,
@@ -218,6 +265,11 @@ def summarise(metrics: list[EpisodeMetrics]):
             "edge_offload_pct": round(off, 2),
             "avg_egs_corrections": round(cor, 1),
             "avg_dist_per_uav": round(dist, 2),
+            "diagnostics": {
+                key: round(statistics.mean(m.diagnostics.get(key, 0.0) for m in ms), 1)
+                for key in DIAGNOSTIC_KEYS
+                if any(m.diagnostics.get(key, 0.0) for m in ms)
+            },
         }
     print(sep)
 
@@ -233,13 +285,19 @@ def summarise(metrics: list[EpisodeMetrics]):
         perf_ratio = local_cr / oracle_cr * 100
         msg_saving = (1 - local_msg / oracle_msg) * 100
         print(f"\n  LocalConsensus achieves {perf_ratio:.1f}% of Oracle completion rate")
-        print(f"  while using {msg_saving:.1f}% fewer messages than the Oracle.")
+        if msg_saving >= 0:
+            print(f"  while using {msg_saving:.1f}% fewer messages than the Oracle.")
+        else:
+            print(f"  while using {abs(msg_saving):.1f}% more messages than the Oracle.")
 
     if assist_cr > 0 and oracle_cr > 0:
         a_perf_ratio = assist_cr / oracle_cr * 100
         a_msg_saving = (1 - assist_msg / oracle_msg) * 100
         print(f"  EGS-Assisted Consensus achieves {a_perf_ratio:.1f}% of Oracle completion rate")
-        print(f"  while using {a_msg_saving:.1f}% fewer messages than the Oracle.")
+        if a_msg_saving >= 0:
+            print(f"  while using {a_msg_saving:.1f}% fewer messages than the Oracle.")
+        else:
+            print(f"  while using {abs(a_msg_saving):.1f}% more messages than the Oracle.")
 
     return summary_data
 
@@ -249,6 +307,7 @@ def summarise(metrics: list[EpisodeMetrics]):
 def main():
     parser = argparse.ArgumentParser(description="UAV swarm task-allocation benchmark")
     parser.add_argument("--n_uavs",    type=int,   default=5)
+    parser.add_argument("--area",      type=float, default=100.0)
     parser.add_argument("--ticks",     type=int,   default=300)
     parser.add_argument("--episodes",  type=int,   default=10)
     parser.add_argument("--comm_range",type=float, default=35.0)
@@ -266,12 +325,14 @@ def main():
     }
 
     if args.algo == "all":
-        algos = [LocalConsensus(), GreedyBaseline(), CentralizedOracle(), EGSAssistedConsensus(area_size=args.n_uavs*20)]
+        algos = [LocalConsensus(), GreedyBaseline(), CentralizedOracle(), EGSAssistedConsensus(area_size=args.area)]
+    elif args.algo == "assisted":
+        algos = [EGSAssistedConsensus(area_size=args.area)]
     else:
         algos = [algo_map[args.algo]()]
 
     print(f"\nUAV Swarm Task-Allocation Benchmark")
-    print(f"  UAVs={args.n_uavs}  ticks={args.ticks}  episodes={args.episodes}")
+    print(f"  UAVs={args.n_uavs}  area={args.area}  ticks={args.ticks}  episodes={args.episodes}")
     print(f"  comm_range={args.comm_range}  task_rate={args.task_rate}")
 
     t0 = time.time()
@@ -279,6 +340,7 @@ def main():
         algos,
         n_episodes=args.episodes,
         n_uavs=args.n_uavs,
+        area=args.area,
         n_ticks=args.ticks,
         comm_range=args.comm_range,
         task_rate=args.task_rate,

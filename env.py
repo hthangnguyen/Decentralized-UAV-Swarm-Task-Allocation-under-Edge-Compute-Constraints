@@ -28,6 +28,8 @@ class Task:
     compute_demand: float = 0.2     # fraction of UAV compute budget
     offload_latency: float = 0.0    # extra ticks if processed at edge
     processed_at: Optional[str] = None # 'local' or 'edge'
+    arrival_tick: Optional[int] = None
+    ready_tick: Optional[int] = None
 
     @property
     def pos(self) -> np.ndarray:
@@ -160,6 +162,7 @@ class SwarmEnv:
 
         # check arrivals & free completed tasks
         self._check_arrivals()
+        self._complete_ready_tasks()
 
         # drift battery
         for u in self.uavs:
@@ -226,10 +229,36 @@ class SwarmEnv:
                 u.target_task_id = None
                 continue
             if u.dist_to(t) <= self.arrive_radius:
-                t.completed = True
-                t.complete_tick = self.tick
-                u.tasks_completed += 1
-                u.target_task_id = None
+                if t.processed_at == "edge":
+                    if t.arrival_tick is None:
+                        t.arrival_tick = self.tick
+                        latency_ticks = int(np.ceil(t.offload_latency))
+                        t.ready_tick = self.tick + max(0, latency_ticks)
+                    u.target_task_id = None
+                    continue
+
+                if t.processed_at is None:
+                    t.processed_at = "local"
+                    t.offload_latency = 0.0
+
+                self._complete_task(u, t)
+
+    def _complete_ready_tasks(self):
+        for t in self.tasks:
+            if t.completed or t.processed_at != "edge" or t.ready_tick is None:
+                continue
+            if self.tick >= t.ready_tick:
+                u = next((uav for uav in self.uavs if uav.id == t.assigned_to), None)
+                self._complete_task(u, t)
+
+    def _complete_task(self, uav: Optional[UAV], task: Task):
+        if task.completed:
+            return
+        task.completed = True
+        task.complete_tick = self.tick
+        if uav is not None:
+            uav.tasks_completed += 1
+            uav.target_task_id = None
 
     # ── Observation ───────────────────────────────────────────────────────────
 

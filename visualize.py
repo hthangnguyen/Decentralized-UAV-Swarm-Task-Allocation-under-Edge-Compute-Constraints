@@ -155,12 +155,11 @@ def animate(n_uavs: int = 5, comm_range: float = 35.0, n_ticks: int = 400, seed:
         plt.show()
 
 
-# ── Results charts ────────────────────────────────────────────────────────────
-
 def plot_results(metrics_path: str = "results/metrics.json"):
     with open(metrics_path) as f:
         data = json.load(f)
 
+    summary = data["summary"]
     names   = list(summary.keys())
     short   = {
         "LocalConsensus (proposed)":     "LocalConsensus",

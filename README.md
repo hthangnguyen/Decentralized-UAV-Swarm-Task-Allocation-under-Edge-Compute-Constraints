@@ -19,7 +19,7 @@ This project proposes and evaluates a **LocalConsensus** algorithm in which each
 
 ## Results
 
-![Benchmark results](results/benchmark_results.png)
+![Benchmark results](results/benchmark_results1.png)
 
 Benchmark outputs depend heavily on the seed, swarm size, task rate, and communication range. Rather than pinning one stale table in the README, the project saves reproducible per-episode metrics to `results/metrics.json` and can regenerate plots with:
 
@@ -31,15 +31,19 @@ python visualize.py --mode results
 Representative benchmark configuration used for the summary below:
 
 ```bash
-python simulate.py --n_uavs 8 --ticks 500 --episodes 30 --comm_range 35 --task_rate 0.10
+python simulate.py --episodes 30 --ticks 500 --n_uavs 8
 ```
 
-| Algorithm | Completion % | Avg time (ticks) | Messages / episode |
-|---|---:|---:|---:|
-| LocalConsensus | 96.78 | 16.78 | 532.2 |
-| GreedyBaseline | 96.74 | 13.24 | 56.9 |
-| CentralizedOracle | 97.06 | 13.24 | 4054.2 |
-| EGS-Assisted | 95.73 | 17.16 | 596.8 |
+BENCHMARK SUMMARY (SAGIN + EGS Extensions)
+==========================================================================================
++----------------------------+------------+------------+-----------+--------+--------+----------+
+|Algorithm                   |Comp%       |Time(t)     |Msgs/ep    |Edge%   |Corrs   |Dist/U    |
++----------------------------+------------+------------+-----------+--------+--------+----------+
+|LocalConsensus (proposed)   |96.8%       |16.8        |532        |6.9%    |0.0     |156.8     |
+|GreedyBaseline (no coordina |96.7%       |13.2        |57         |12.2%   |0.0     |119.8     |
+|CentralizedOracle (upper bo |97.1%       |13.2        |4054       |6.9%    |0.0     |123.4     |
+|EGS-Assisted Consensus (pro |95.7%       |17.2        |597        |4.1%    |1.8     |162.3     |
++----------------------------+------------+------------+-----------+--------+--------+----------+
 
 The benchmark now applies compute-load reservation and edge-offload latency directly inside the simulation loop, so mobility throttling, edge delay, and EGS corrections affect runtime behavior instead of only post-hoc reporting.
 
@@ -72,7 +76,7 @@ uav_swarm/
 ## Installation
 
 ```bash
-git clone https://github.com/<your-username>/uav-swarm-edge-ai
+git clone https://github.com/hthangnguyen/SwarmEdge-SAGIN.git
 cd uav-swarm-edge-ai
 pip install -r requirements.txt
 ```

@@ -46,7 +46,7 @@ uav_swarm/
 ## Installation
 
 ```bash
-git clone https://github.com/<your-username>/uav-swarm-edge-ai
+git clone https://github.com/hthangnguyen/Decentralized-UAV-Swarm-Task-Allocation-under-Edge-Compute-Constraints.git
 cd uav-swarm-edge-ai
 pip install -r requirements.txt
 ```

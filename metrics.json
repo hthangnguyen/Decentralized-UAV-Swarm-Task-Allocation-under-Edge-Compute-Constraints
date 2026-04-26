@@ -1,0 +1,531 @@
+{
+  "config": {
+    "n_uavs": 5,
+    "ticks": 300,
+    "episodes": 15,
+    "comm_range": 35.0,
+    "task_rate": 0.1,
+    "seed": 42,
+    "algo": "all"
+  },
+  "summary": {
+    "LocalConsensus (proposed)": {
+      "completion_pct": 94.2,
+      "avg_completion_time": 16.12,
+      "avg_msgs_per_episode": 117.3,
+      "connectivity_pct": 57.0,
+      "avg_dist_per_uav": 197.86
+    },
+    "GreedyBaseline (no coordination)": {
+      "completion_pct": 95.0,
+      "avg_completion_time": 12.46,
+      "avg_msgs_per_episode": 36.6,
+      "connectivity_pct": 35.2,
+      "avg_dist_per_uav": 168.79
+    },
+    "CentralizedOracle (upper bound)": {
+      "completion_pct": 94.88,
+      "avg_completion_time": 13.53,
+      "avg_msgs_per_episode": 1531.9,
+      "connectivity_pct": 41.2,
+      "avg_dist_per_uav": 172.36
+    }
+  },
+  "episodes": [
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 0,
+      "tasks_completed": 40,
+      "tasks_spawned": 43,
+      "completion_rate": 0.9302325581395349,
+      "mean_completion_time": 14.35,
+      "total_messages": 136,
+      "mean_distance_per_uav": 241.6,
+      "connectivity_ratio": 0.5966666666666667
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 1,
+      "tasks_completed": 28,
+      "tasks_spawned": 31,
+      "completion_rate": 0.9032258064516129,
+      "mean_completion_time": 13.357142857142858,
+      "total_messages": 158,
+      "mean_distance_per_uav": 167.6,
+      "connectivity_ratio": 0.75
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 2,
+      "tasks_completed": 35,
+      "tasks_spawned": 37,
+      "completion_rate": 0.9459459459459459,
+      "mean_completion_time": 18.485714285714284,
+      "total_messages": 95,
+      "mean_distance_per_uav": 273.19556678507536,
+      "connectivity_ratio": 0.6866666666666666
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 3,
+      "tasks_completed": 20,
+      "tasks_spawned": 25,
+      "completion_rate": 0.8,
+      "mean_completion_time": 13.0,
+      "total_messages": 151,
+      "mean_distance_per_uav": 126.4,
+      "connectivity_ratio": 0.82
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 4,
+      "tasks_completed": 24,
+      "tasks_spawned": 24,
+      "completion_rate": 1.0,
+      "mean_completion_time": 19.25,
+      "total_messages": 81,
+      "mean_distance_per_uav": 177.2,
+      "connectivity_ratio": 0.21666666666666667
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 5,
+      "tasks_completed": 38,
+      "tasks_spawned": 41,
+      "completion_rate": 0.926829268292683,
+      "mean_completion_time": 18.342105263157894,
+      "total_messages": 123,
+      "mean_distance_per_uav": 280.0,
+      "connectivity_ratio": 0.3566666666666667
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 6,
+      "tasks_completed": 30,
+      "tasks_spawned": 33,
+      "completion_rate": 0.9090909090909091,
+      "mean_completion_time": 16.533333333333335,
+      "total_messages": 120,
+      "mean_distance_per_uav": 211.2,
+      "connectivity_ratio": 0.33666666666666667
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 7,
+      "tasks_completed": 27,
+      "tasks_spawned": 28,
+      "completion_rate": 0.9642857142857143,
+      "mean_completion_time": 15.88888888888889,
+      "total_messages": 106,
+      "mean_distance_per_uav": 177.2,
+      "connectivity_ratio": 0.33666666666666667
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 8,
+      "tasks_completed": 30,
+      "tasks_spawned": 33,
+      "completion_rate": 0.9090909090909091,
+      "mean_completion_time": 14.7,
+      "total_messages": 145,
+      "mean_distance_per_uav": 182.0,
+      "connectivity_ratio": 0.6533333333333333
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 9,
+      "tasks_completed": 27,
+      "tasks_spawned": 27,
+      "completion_rate": 1.0,
+      "mean_completion_time": 21.185185185185187,
+      "total_messages": 79,
+      "mean_distance_per_uav": 226.4,
+      "connectivity_ratio": 0.58
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 10,
+      "tasks_completed": 14,
+      "tasks_spawned": 14,
+      "completion_rate": 1.0,
+      "mean_completion_time": 8.785714285714286,
+      "total_messages": 77,
+      "mean_distance_per_uav": 49.2,
+      "connectivity_ratio": 0.24666666666666667
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 11,
+      "tasks_completed": 33,
+      "tasks_spawned": 33,
+      "completion_rate": 1.0,
+      "mean_completion_time": 16.78787878787879,
+      "total_messages": 135,
+      "mean_distance_per_uav": 221.6,
+      "connectivity_ratio": 0.77
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 12,
+      "tasks_completed": 33,
+      "tasks_spawned": 34,
+      "completion_rate": 0.9705882352941176,
+      "mean_completion_time": 15.909090909090908,
+      "total_messages": 102,
+      "mean_distance_per_uav": 219.9429200821318,
+      "connectivity_ratio": 0.5266666666666666
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 13,
+      "tasks_completed": 33,
+      "tasks_spawned": 36,
+      "completion_rate": 0.9166666666666666,
+      "mean_completion_time": 19.575757575757574,
+      "total_messages": 129,
+      "mean_distance_per_uav": 273.6,
+      "connectivity_ratio": 0.8966666666666666
+    },
+    {
+      "algorithm": "LocalConsensus (proposed)",
+      "episode": 14,
+      "tasks_completed": 21,
+      "tasks_spawned": 22,
+      "completion_rate": 0.9545454545454546,
+      "mean_completion_time": 15.666666666666666,
+      "total_messages": 123,
+      "mean_distance_per_uav": 140.8,
+      "connectivity_ratio": 0.7766666666666666
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 0,
+      "tasks_completed": 36,
+      "tasks_spawned": 36,
+      "completion_rate": 1.0,
+      "mean_completion_time": 12.36111111111111,
+      "total_messages": 36,
+      "mean_distance_per_uav": 177.9227082144575,
+      "connectivity_ratio": 0.45666666666666667
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 1,
+      "tasks_completed": 36,
+      "tasks_spawned": 36,
+      "completion_rate": 1.0,
+      "mean_completion_time": 15.416666666666666,
+      "total_messages": 43,
+      "mean_distance_per_uav": 219.2,
+      "connectivity_ratio": 0.3233333333333333
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 2,
+      "tasks_completed": 32,
+      "tasks_spawned": 34,
+      "completion_rate": 0.9411764705882353,
+      "mean_completion_time": 12.0625,
+      "total_messages": 36,
+      "mean_distance_per_uav": 158.79556678507532,
+      "connectivity_ratio": 0.10666666666666667
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 3,
+      "tasks_completed": 36,
+      "tasks_spawned": 36,
+      "completion_rate": 1.0,
+      "mean_completion_time": 15.166666666666666,
+      "total_messages": 37,
+      "mean_distance_per_uav": 218.0,
+      "connectivity_ratio": 0.5
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 4,
+      "tasks_completed": 33,
+      "tasks_spawned": 37,
+      "completion_rate": 0.8918918918918919,
+      "mean_completion_time": 17.272727272727273,
+      "total_messages": 43,
+      "mean_distance_per_uav": 233.2,
+      "connectivity_ratio": 0.5533333333333333
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 5,
+      "tasks_completed": 32,
+      "tasks_spawned": 33,
+      "completion_rate": 0.9696969696969697,
+      "mean_completion_time": 12.21875,
+      "total_messages": 33,
+      "mean_distance_per_uav": 157.52520360912234,
+      "connectivity_ratio": 0.09666666666666666
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 6,
+      "tasks_completed": 24,
+      "tasks_spawned": 27,
+      "completion_rate": 0.8888888888888888,
+      "mean_completion_time": 10.583333333333334,
+      "total_messages": 27,
+      "mean_distance_per_uav": 113.2,
+      "connectivity_ratio": 0.20333333333333334
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 7,
+      "tasks_completed": 34,
+      "tasks_spawned": 35,
+      "completion_rate": 0.9714285714285714,
+      "mean_completion_time": 11.147058823529411,
+      "total_messages": 35,
+      "mean_distance_per_uav": 155.22511495027237,
+      "connectivity_ratio": 0.33
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 8,
+      "tasks_completed": 35,
+      "tasks_spawned": 38,
+      "completion_rate": 0.9210526315789473,
+      "mean_completion_time": 9.342857142857143,
+      "total_messages": 38,
+      "mean_distance_per_uav": 143.2,
+      "connectivity_ratio": 0.35
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 9,
+      "tasks_completed": 30,
+      "tasks_spawned": 32,
+      "completion_rate": 0.9375,
+      "mean_completion_time": 8.833333333333334,
+      "total_messages": 32,
+      "mean_distance_per_uav": 120.4,
+      "connectivity_ratio": 0.16333333333333333
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 10,
+      "tasks_completed": 27,
+      "tasks_spawned": 29,
+      "completion_rate": 0.9310344827586207,
+      "mean_completion_time": 9.481481481481481,
+      "total_messages": 29,
+      "mean_distance_per_uav": 103.6,
+      "connectivity_ratio": 0.37333333333333335
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 11,
+      "tasks_completed": 37,
+      "tasks_spawned": 38,
+      "completion_rate": 0.9736842105263158,
+      "mean_completion_time": 17.7027027027027,
+      "total_messages": 49,
+      "mean_distance_per_uav": 261.6,
+      "connectivity_ratio": 0.56
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 12,
+      "tasks_completed": 32,
+      "tasks_spawned": 35,
+      "completion_rate": 0.9142857142857143,
+      "mean_completion_time": 11.875,
+      "total_messages": 43,
+      "mean_distance_per_uav": 156.4,
+      "connectivity_ratio": 0.5033333333333333
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 13,
+      "tasks_completed": 34,
+      "tasks_spawned": 36,
+      "completion_rate": 0.9444444444444444,
+      "mean_completion_time": 14.264705882352942,
+      "total_messages": 38,
+      "mean_distance_per_uav": 209.2,
+      "connectivity_ratio": 0.47
+    },
+    {
+      "algorithm": "GreedyBaseline (no coordination)",
+      "episode": 14,
+      "tasks_completed": 28,
+      "tasks_spawned": 29,
+      "completion_rate": 0.9655172413793104,
+      "mean_completion_time": 9.214285714285714,
+      "total_messages": 30,
+      "mean_distance_per_uav": 104.4,
+      "connectivity_ratio": 0.29
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 0,
+      "tasks_completed": 37,
+      "tasks_spawned": 39,
+      "completion_rate": 0.9487179487179487,
+      "mean_completion_time": 12.621621621621621,
+      "total_messages": 1539,
+      "mean_distance_per_uav": 190.4,
+      "connectivity_ratio": 0.09
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 1,
+      "tasks_completed": 26,
+      "tasks_spawned": 28,
+      "completion_rate": 0.9285714285714286,
+      "mean_completion_time": 11.692307692307692,
+      "total_messages": 1528,
+      "mean_distance_per_uav": 129.2,
+      "connectivity_ratio": 0.4766666666666667
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 2,
+      "tasks_completed": 33,
+      "tasks_spawned": 37,
+      "completion_rate": 0.8918918918918919,
+      "mean_completion_time": 12.151515151515152,
+      "total_messages": 1537,
+      "mean_distance_per_uav": 182.79556678507532,
+      "connectivity_ratio": 0.16333333333333333
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 3,
+      "tasks_completed": 21,
+      "tasks_spawned": 21,
+      "completion_rate": 1.0,
+      "mean_completion_time": 12.714285714285714,
+      "total_messages": 1521,
+      "mean_distance_per_uav": 106.8,
+      "connectivity_ratio": 0.82
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 4,
+      "tasks_completed": 27,
+      "tasks_spawned": 27,
+      "completion_rate": 1.0,
+      "mean_completion_time": 16.666666666666668,
+      "total_messages": 1527,
+      "mean_distance_per_uav": 171.6,
+      "connectivity_ratio": 0.38333333333333336
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 5,
+      "tasks_completed": 38,
+      "tasks_spawned": 40,
+      "completion_rate": 0.95,
+      "mean_completion_time": 13.236842105263158,
+      "total_messages": 1540,
+      "mean_distance_per_uav": 216.0,
+      "connectivity_ratio": 0.2
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 6,
+      "tasks_completed": 32,
+      "tasks_spawned": 35,
+      "completion_rate": 0.9142857142857143,
+      "mean_completion_time": 11.71875,
+      "total_messages": 1535,
+      "mean_distance_per_uav": 158.4,
+      "connectivity_ratio": 0.58
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 7,
+      "tasks_completed": 32,
+      "tasks_spawned": 37,
+      "completion_rate": 0.8648648648648649,
+      "mean_completion_time": 14.21875,
+      "total_messages": 1536,
+      "mean_distance_per_uav": 211.54458924402516,
+      "connectivity_ratio": 0.53
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 8,
+      "tasks_completed": 30,
+      "tasks_spawned": 33,
+      "completion_rate": 0.9090909090909091,
+      "mean_completion_time": 14.7,
+      "total_messages": 1533,
+      "mean_distance_per_uav": 182.0,
+      "connectivity_ratio": 0.6533333333333333
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 9,
+      "tasks_completed": 31,
+      "tasks_spawned": 34,
+      "completion_rate": 0.9117647058823529,
+      "mean_completion_time": 18.387096774193548,
+      "total_messages": 1534,
+      "mean_distance_per_uav": 234.8,
+      "connectivity_ratio": 0.5033333333333333
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 10,
+      "tasks_completed": 14,
+      "tasks_spawned": 14,
+      "completion_rate": 1.0,
+      "mean_completion_time": 8.785714285714286,
+      "total_messages": 1514,
+      "mean_distance_per_uav": 49.2,
+      "connectivity_ratio": 0.24666666666666667
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 11,
+      "tasks_completed": 30,
+      "tasks_spawned": 30,
+      "completion_rate": 1.0,
+      "mean_completion_time": 16.066666666666666,
+      "total_messages": 1530,
+      "mean_distance_per_uav": 192.4,
+      "connectivity_ratio": 0.31
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 12,
+      "tasks_completed": 33,
+      "tasks_spawned": 34,
+      "completion_rate": 0.9705882352941176,
+      "mean_completion_time": 11.363636363636363,
+      "total_messages": 1534,
+      "mean_distance_per_uav": 153.2,
+      "connectivity_ratio": 0.2733333333333333
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 13,
+      "tasks_completed": 30,
+      "tasks_spawned": 31,
+      "completion_rate": 0.967741935483871,
+      "mean_completion_time": 13.066666666666666,
+      "total_messages": 1531,
+      "mean_distance_per_uav": 167.2,
+      "connectivity_ratio": 0.17
+    },
+    {
+      "algorithm": "CentralizedOracle (upper bound)",
+      "episode": 14,
+      "tasks_completed": 38,
+      "tasks_spawned": 39,
+      "completion_rate": 0.9743589743589743,
+      "mean_completion_time": 15.5,
+      "total_messages": 1539,
+      "mean_distance_per_uav": 239.81437297923276,
+      "connectivity_ratio": 0.78
+    }
+  ]
+}

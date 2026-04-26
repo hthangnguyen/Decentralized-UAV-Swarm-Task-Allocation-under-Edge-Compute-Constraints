@@ -75,7 +75,7 @@ uav_swarm/
 
 ```bash
 git clone https://github.com/hthangnguyen/SwarmEdge-SAGIN.git
-cd uav-swarm-edge-ai
+cd SwarmEdge-SAGIN-main
 pip install -r requirements.txt
 ```
 
